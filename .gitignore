@@ -1,0 +1,5 @@
+node_modules/
+backend/internhub.db
+backend/internhub.db-shm
+backend/internhub.db-wal
+.env
