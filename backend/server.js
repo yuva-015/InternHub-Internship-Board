@@ -11,7 +11,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.disable("x-powered-by");
+// TASK-4: Request logging
+app.use((req, res, next) => {
+  const start = Date.now();
 
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+
+    // Log only API requests; avoid personal application data.
+    if (req.path.startsWith("/api")) {
+      console.log(
+        `[API] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`
+      );
+    }
+  });
+
+  next();
+});
 // Security middleware
 app.use(helmet());
 app.use(express.json({ limit: "20kb" }));
@@ -124,12 +140,27 @@ function formatInternship(row) {
   };
 }
 
-// Health check
+// TASK-4: API and database health check
 app.get("/api/health", (req, res) => {
-  res.json({
-    success: true,
-    message: "InternHub API is running"
-  });
+  try {
+    db.prepare("SELECT 1 AS healthy").get();
+
+    res.json({
+      success: true,
+      status: "healthy",
+      database: "connected",
+      message: "InternHub API is running"
+    });
+  } catch (error) {
+    console.error("[HEALTH] Database check failed");
+
+    res.status(503).json({
+      success: false,
+      status: "unhealthy",
+      database: "unavailable",
+      message: "Service temporarily unavailable"
+    });
+  }
 });
 
 // GET all internships with pagination
