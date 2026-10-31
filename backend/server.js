@@ -1,4 +1,5 @@
 
+
 "use strict";
 
 const express = require("express");
@@ -6,11 +7,16 @@ const path = require("path");
 const helmet = require("helmet");
 const { rateLimit } = require("express-rate-limit");
 const db = require("./database");
+const session = require("express-session");
+const authRoutes = require("./auth");
+const SQLiteStore = require("better-sqlite3-session-store")(session);
+const crypto = require("node:crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.disable("x-powered-by");
+
 // TASK-4: Request logging
 app.use((req, res, next) => {
   const start = Date.now();
@@ -28,9 +34,46 @@ app.use((req, res, next) => {
 
   next();
 });
+
 // Security middleware
 app.use(helmet());
 app.use(express.json({ limit: "20kb" }));
+
+// Student authentication session
+const sessionSecret =
+  process.env.SESSION_SECRET ||
+  (process.env.NODE_ENV === "production"
+    ? null
+    : crypto.randomBytes(32).toString("hex"));
+
+if (!sessionSecret || sessionSecret.length < 32) {
+  throw new Error("A secure SESSION_SECRET is required.");
+}
+
+app.use(
+  session({
+    name: "internhub.sid",
+    store: new SQLiteStore({
+      client: db,
+      expired: {
+        clear: true,
+        intervalMs: 15 * 60 * 1000
+      }
+    }),
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000
+    }
+  })
+);
+
+// Authentication routes
+app.use("/api/auth", authRoutes);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -66,6 +109,7 @@ const allowLocalAdmin =
 
 function requireLocalAdmin(req, res, next) {
   const ip = req.ip || "";
+
   const isLocal =
     ip === "127.0.0.1" ||
     ip === "::1" ||
@@ -368,7 +412,8 @@ app.delete("/api/internships/:id", requireLocalAdmin, (req, res) => {
   }
 });
 
-// Application submission
+// TASK-5: Application submission
+// Supports both guests and logged-in students.
 app.post("/api/applications", applicationLimiter, (req, res) => {
   const internshipId = cleanString(req.body.internshipId);
   const name = cleanString(req.body.name);
@@ -432,17 +477,42 @@ app.post("/api/applications", applicationLimiter, (req, res) => {
     });
   }
 
+  // TASK-5: Associate applications with student accounts.
+  // Guest applications continue to use NULL user_id.
+  const loggedInUserId = req.session?.userId ?? null;
+
+  if (loggedInUserId !== null) {
+    const student = db
+      .prepare("SELECT email FROM users WHERE id = ?")
+      .get(loggedInUserId);
+
+    if (!student) {
+      return res.status(401).json({
+        success: false,
+        error: "Please log in again."
+      });
+    }
+
+    if (student.email.toLowerCase() !== email) {
+      return res.status(400).json({
+        success: false,
+        error: "Use your registered email to apply."
+      });
+    }
+  }
+
   try {
     const result = db.prepare(`
       INSERT INTO applications
-      (internship_id, name, email, college, skills)
-      VALUES (?, ?, ?, ?, ?)
+      (internship_id, name, email, college, skills, user_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `).run(
       internshipId,
       name,
       email,
       college,
-      skills
+      skills,
+      loggedInUserId
     );
 
     res.status(201).json({
@@ -468,9 +538,68 @@ app.post("/api/applications", applicationLimiter, (req, res) => {
   }
 });
 
+// TASK-5: Get applications for the logged-in student
+app.get("/api/my-applications", (req, res) => {
+  const userId = req.session?.userId;
+
+  if (!userId) {
+    return res.status(401).json({
+      success: false,
+      error: "Please log in to view your applications."
+    });
+  }
+
+  const student = db
+    .prepare("SELECT id FROM users WHERE id = ?")
+    .get(userId);
+
+  if (!student) {
+    return res.status(401).json({
+      success: false,
+      error: "Session is no longer valid."
+    });
+  }
+
+  const applications = db.prepare(`
+    SELECT
+      a.id,
+      a.internship_id AS internshipId,
+      i.title AS internshipTitle,
+      i.domain,
+      i.mode,
+      i.location,
+      a.status,
+      a.created_at AS appliedAt
+    FROM applications a
+    JOIN internships i ON i.id = a.internship_id
+    WHERE a.user_id = ?
+    ORDER BY a.created_at DESC, a.id DESC
+  `).all(userId);
+
+  res.json({
+    success: true,
+    data: applications
+  });
+});
+
+
 // Secure frontend serving
 // Never expose the backend folder or SQLite database.
 const frontendPath = path.join(__dirname, "..");
+
+// Student authentication frontend pages
+app.get("/login.html", (req, res) => {
+  res.sendFile(path.join(frontendPath, "login.html"));
+});
+
+app.get("/signup.html", (req, res) => {
+  res.sendFile(path.join(frontendPath, "signup.html"));
+});
+
+// Student Dashboard page
+app.get("/dashboard.html", (req, res) => {
+  res.sendFile(path.join(frontendPath, "dashboard.html"));
+});
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));

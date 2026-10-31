@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Log in to your InternHub student account.">
+  <title>Student Login | InternHub</title>
+  <link rel="stylesheet" href="/css/auth.css">
+  <script src="/js/auth.js" defer></script>
+</head>
+
+<body>
+  <main class="auth-container">
+    <section class="auth-card" aria-labelledby="auth-title">
+
+      <a href="/" class="auth-logo">Intern<span>Hub</span></a>
+
+      <div class="auth-header">
+        <h1 id="auth-title">Welcome Back!</h1>
+        <p>Log in to explore your internship opportunities.</p>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Enter your email"
+            autocomplete="email"
+            maxlength="254"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+
+        <button type="submit" id="submitBtn" class="auth-button">
+          Log In
+        </button>
+
+      </form>
+
+      <p class="auth-switch">
+        Don't have an account?
+        <a href="/signup.html">Create Account</a>
+      </p>
+
+      <a href="/" class="back-link">Back to Internship Board</a>
+
+    </section>
+  </main>
+</body>
+</html>

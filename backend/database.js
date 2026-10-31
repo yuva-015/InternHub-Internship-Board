@@ -12,7 +12,7 @@ const db = new Database(
 // Enable foreign key relationships
 db.pragma("foreign_keys = ON");
 
-// Existing internships table
+// Internships table
 db.exec(`
   CREATE TABLE IF NOT EXISTS internships (
     id TEXT PRIMARY KEY,
@@ -25,7 +25,7 @@ db.exec(`
   )
 `);
 
-// New applications table
+// Applications table
 db.exec(`
   CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +43,45 @@ db.exec(`
 
     UNIQUE(internship_id, email)
   )
+`);
+
+// TASK-5: Student authentication users table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// TASK-5: Link applications to student accounts
+// Existing guest applications remain unchanged
+const applicationColumns = db
+  .prepare("PRAGMA table_info(applications)")
+  .all();
+
+const hasUserId = applicationColumns.some(
+  (column) => column.name === "user_id"
+);
+
+// Safe database migration
+if (!hasUserId) {
+  db.exec(`
+    ALTER TABLE applications
+    ADD COLUMN user_id INTEGER REFERENCES users(id)
+  `);
+
+  console.log(
+    "Applications user_id column added successfully!"
+  );
+}
+
+// Index for faster student application tracking
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_applications_user_id
+  ON applications(user_id)
 `);
 
 console.log(
