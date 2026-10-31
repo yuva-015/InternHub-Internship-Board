@@ -158,6 +158,7 @@
   <!-- Internship Details Dialog -->
   <dialog id="details-dialog" aria-labelledby="dialog-title">
     <div class="dialog-content">
+
       <button
         type="button"
         id="close-dialog"
@@ -170,6 +171,126 @@
       <h2 id="dialog-title">Internship Details</h2>
 
       <div id="dialog-body"></div>
+
+      <button
+        type="button"
+        id="apply-now-btn"
+        class="primary-btn"
+      >
+        Apply Now
+      </button>
+
+    </div>
+  </dialog>
+
+  <!-- Internship Application Dialog -->
+  <dialog
+    id="application-dialog"
+    aria-labelledby="application-title"
+  >
+    <div class="dialog-content">
+
+      <button
+        type="button"
+        id="close-application"
+        class="close-btn"
+        aria-label="Close application form"
+      >
+        &times;
+      </button>
+
+      <h2 id="application-title">
+        Internship Application
+      </h2>
+
+      <p id="selected-internship"></p>
+
+      <form id="application-form">
+
+        <input
+          type="hidden"
+          id="application-internship-id"
+          name="internshipId"
+        >
+
+        <div class="form-group">
+          <label for="applicant-name">
+            Full Name
+          </label>
+
+          <input
+            type="text"
+            id="applicant-name"
+            name="name"
+            minlength="2"
+            maxlength="100"
+            autocomplete="name"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-email">
+            Email Address
+          </label>
+
+          <input
+            type="email"
+            id="applicant-email"
+            name="email"
+            maxlength="254"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-college">
+            College / Institution
+          </label>
+
+          <input
+            type="text"
+            id="applicant-college"
+            name="college"
+            minlength="2"
+            maxlength="150"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="applicant-skills">
+            Your Skills
+          </label>
+
+          <textarea
+            id="applicant-skills"
+            name="skills"
+            rows="3"
+            minlength="2"
+            maxlength="500"
+            placeholder="Example: HTML, CSS, JavaScript"
+            required
+          ></textarea>
+        </div>
+
+        <p
+          id="application-message"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <button
+          type="submit"
+          id="submit-application"
+          class="primary-btn"
+        >
+          Submit Application
+        </button>
+
+      </form>
+
     </div>
   </dialog>
 
